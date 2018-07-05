@@ -1,0 +1,16 @@
+{
+  "name": "comentarios-globo-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "node ./rest/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./rest/server.js"
+  },
+  "author": "Igor Mandello",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "*",
+    "express": "*"
+  }
+}
