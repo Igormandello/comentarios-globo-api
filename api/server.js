@@ -11,7 +11,6 @@ app.use('/api/comentarios', async (req, res) => {
   var options = { 
     method: 'GET',
     url: 'https://g1.globo.com/economia/noticia/producao-industrial-recua-109-em-maio-diz-ibge.ghtml'
-    //url: 'https://comentarios.globo.com/comentarios/%40%40jornalismo%40%40g1%40%40economia/multi-content%40%403f0a93e3-bff8-4071-ad4c-c917d9a93099/https%3A%40%40%40%40g1.globo.com%40%40economia%40%40noticia%40%40producao-industrial-recua-109-em-maio-diz-ibge.ghtml/shorturl/Greve%20dos%20caminhoneiros%20faz%20produ%C3%A7%C3%A3o%20industrial%20recuar%2010%2C9%25%20em%20maio%2C%20diz%20IBGE/1.json',
   };
 
   let promise = new Promise(resolve => {
@@ -40,10 +39,27 @@ app.use('/api/comentarios', async (req, res) => {
       eval(settings);
 
       //Agora possuimos uma referência para o objeto SETTINGS
-      console.log(SETTINGS);
+      //console.log(SETTINGS);
+
+      //Formato específicado no próprio código da globo
+      options.url = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/{pagina}.json';
+
+      //Criação da url para request de comentários (o porquê da globo trocar '/' por '@@' eu não sei, apenas aceite)
+      let uri = encodeURIComponent(SETTINGS.COMENTARIOS_URI.replace(/\//g, '@@')),
+          id  = encodeURIComponent(SETTINGS.COMENTARIOS_IDEXTERNO.replace(/\//g, '@@')),
+          url = encodeURIComponent(SETTINGS.CANONICAL_URL.replace(/\//g, '@@')),
+          shorturl = 'shorturl', //???
+          titulo   = encodeURIComponent(SETTINGS.TITLE.replace(/\//g, '@@')),
+          pagina   = 1; //Por enquanto
+
+      options.url = options.url.replace('{uri}', uri);
+      options.url = options.url.replace('{idExterno}', id);
+      options.url = options.url.replace('{url}', url);
+      options.url = options.url.replace('{shorturl}', shorturl);
+      options.url = options.url.replace('{titulo}', titulo);
+      options.url = options.url.replace('{pagina}', pagina);
 
       //Como no body vem uma chamada de função, vamos executa-la com eval
-      options.url = 'https://comentarios.globo.com/comentarios/%40%40jornalismo%40%40g1%40%40economia/multi-content%40%403f0a93e3-bff8-4071-ad4c-c917d9a93099/https%3A%40%40%40%40g1.globo.com%40%40economia%40%40noticia%40%40producao-industrial-recua-109-em-maio-diz-ibge.ghtml/shorturl/Greve%20dos%20caminhoneiros%20faz%20produ%C3%A7%C3%A3o%20industrial%20recuar%2010%2C9%25%20em%20maio%2C%20diz%20IBGE/1.json';
       request(options, (error, response, body) => eval(body));
 
       //A globo fez com que o retorno da api de comentários fosse uma chamada de uma função com esse nome
