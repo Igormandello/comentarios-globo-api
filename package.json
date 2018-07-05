@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "body-parser": "*",
-    "express": "*"
+    "express": "*",
+    "htmlparser2": "^3.9.2"
   }
 }
