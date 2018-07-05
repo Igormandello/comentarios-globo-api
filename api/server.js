@@ -16,7 +16,14 @@ app.use('/api/comentarios', async (req, res) => {
     //A globo fez com que o retorno da api de comentários fosse uma chamada de uma função com esse nome
     //Era possível fazer apenas um "substring", mas vamos jogar o jogo deles né
     function __callback_listacomentarios(json) {
-      resolve(json.itens);
+      let textos = [];
+      json.itens.forEach(comentario => {
+        let respostas = [];
+        comentario.replies.forEach(resposta => respostas.push(resposta.texto));
+        textos.push({ mensagem: comentario.texto, respostas: respostas});
+      });
+
+      resolve(textos);
     }
 
     //Como no body vem uma chamada de função, vamos executa-la com eval
