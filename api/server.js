@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 app.use('/api/comentarios', async (req, res) => {
   var options = { 
     method: 'GET',
-    url: 'https://g1.globo.com/economia/noticia/producao-industrial-recua-109-em-maio-diz-ibge.ghtml'
+    url: 'https://g1.globo.com/carros/noticia/temer-assina-nesta-quinta-criacao-do-novo-regime-automotivo.ghtml'
   };
 
   let promise = new Promise(resolve => {
@@ -42,7 +42,7 @@ app.use('/api/comentarios', async (req, res) => {
       //console.log(SETTINGS);
 
       //Formato específicado no próprio código da globo
-      options.url = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/{pagina}.json';
+      let urlComentarios = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/{pagina}.json';
 
       //Criação da url para request de comentários (o porquê da globo trocar '/' por '@@' eu não sei, apenas aceite)
       let uri = encodeURIComponent(SETTINGS.COMENTARIOS_URI.replace(/\//g, '@@')),
@@ -50,29 +50,37 @@ app.use('/api/comentarios', async (req, res) => {
           url = encodeURIComponent(SETTINGS.CANONICAL_URL.replace(/\//g, '@@')),
           shorturl = 'shorturl', //???
           titulo   = encodeURIComponent(SETTINGS.TITLE.replace(/\//g, '@@')),
-          pagina   = 1; //Por enquanto
+          pagina   = 1;
 
-      options.url = options.url.replace('{uri}', uri);
-      options.url = options.url.replace('{idExterno}', id);
-      options.url = options.url.replace('{url}', url);
-      options.url = options.url.replace('{shorturl}', shorturl);
-      options.url = options.url.replace('{titulo}', titulo);
-      options.url = options.url.replace('{pagina}', pagina);
+      urlComentarios = urlComentarios.replace('{uri}', uri);
+      urlComentarios = urlComentarios.replace('{idExterno}', id);
+      urlComentarios = urlComentarios.replace('{url}', url);
+      urlComentarios = urlComentarios.replace('{shorturl}', shorturl);
+      urlComentarios = urlComentarios.replace('{titulo}', titulo);
+      options.url = urlComentarios.replace('{pagina}', pagina);
 
       //Como no body vem uma chamada de função, vamos executa-la com eval
       request(options, (error, response, body) => eval(body));
 
+      let comentarios = [], total = 0;
       //A globo fez com que o retorno da api de comentários fosse uma chamada de uma função com esse nome
       //Era possível fazer apenas um "substring", mas vamos jogar o jogo deles né
       function __callback_listacomentarios(json) {
-        let textos = [];
         json.itens.forEach(comentario => {
           let respostas = [];
           comentario.replies.forEach(resposta => respostas.push(resposta.texto));
-          textos.push({ mensagem: comentario.texto, respostas: respostas});
+          comentarios.push({ mensagem: comentario.texto, respostas: respostas});
+
+          total += 1 + comentario.replies.length;
         });
 
-        resolve(textos);
+        if (json.itens.length < 25)
+          resolve({ comentarios, total });
+        else {
+          pagina++;
+          options.url = urlComentarios.replace('{pagina}', pagina);
+          request(options, (error, response, body) => eval(body));
+        }
       }
     });
   });
