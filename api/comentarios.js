@@ -3,24 +3,62 @@ const htmlparser = require("htmlparser2");
 const request = require('request');
 const FeedParser = require('feedparser');
 
-//Leitura do rss para a coleta de todas as últimas notícias
-var urls = [], fp = new FeedParser();
-fp.on('readable', function () {
-  let item = this.read();
-  while (item) {
-    urls.push(item['rss:guid']['#']);
-    item = this.read();
-  }
-});
+const TAGS = {
+  TODAS: 0,
+  BRASIL: 1,
+  CARROS: 2,
+  CIENCIA_SAUDE: 3,
+  ECONOMIA: 4,
+  EDUCACAO: 5,
+  LOTERIAS: 6,
+  MUNDO: 7,
+  PLANETA_BIZARRO: 8,
+  POLITICA: 9,
+  MENSALAO: 10,
+  POP_ARTE: 11,
+  TECNOLOGIA: 12,
+  TURISMO_VIAGEM: 13
+};
 
-//Politica porque é o mais polêmico, logo, com os comentários mais engraçados
-request.get('http://pox.globo.com/rss/g1/politica/').pipe(fp);
+const FEEDS = [
+  'http://pox.globo.com/rss/g1/',
+  'http://pox.globo.com/rss/g1/brasil/',
+  'http://pox.globo.com/rss/g1/carros/',
+  'http://pox.globo.com/rss/g1/ciencia-e-saude/',
+  'http://pox.globo.com/rss/g1/economia/',
+  'http://pox.globo.com/rss/g1/educacao/',
+  'http://pox.globo.com/rss/g1/loterias/',
+  'http://pox.globo.com/rss/g1/mundo/',
+  'http://pox.globo.com/rss/g1/planeta-bizarro/',
+  'http://pox.globo.com/rss/g1/politica/',
+  'http://pox.globo.com/rss/g1/politica/mensalao/',
+  'http://pox.globo.com/rss/g1/pop-arte/',
+  'http://pox.globo.com/rss/g1/tecnologia/',
+  'http://pox.globo.com/rss/g1/turismo-e-viagem/',
+];
+
+//Leitura do rss para a coleta de todas as últimas notícias
+var feeds = [];
+FEEDS.forEach((feed, i) => {
+  feeds.push([]);
+
+  let parser = new FeedParser();
+  parser.on('readable', function () {
+    let item = this.read();
+    while (item) {
+      feeds[i].push(item['rss:guid']['#']);
+      item = this.read();
+    }
+  });
+
+  request.get(feed).pipe(parser);
+});
 
 //Pegas todos os comentários por ordem de popularidade
 router.get(['/populares', '/:categoria/populares'], async (req, res) => {
   //Formato específicado no próprio código da globo
   let urlComentarios = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/populares/{pagina}.json',
-  urlNoticia = urls[Math.floor(Math.random() * Math.floor(urls.length))];
+      urlNoticia = chooseUrl(req.params.categoria);
 
   res.json(await getComments(urlNoticia, urlComentarios));
 });
@@ -29,7 +67,7 @@ router.get(['/populares', '/:categoria/populares'], async (req, res) => {
 router.get(['/', '/:categoria'], async (req, res) => {
   //Formato específicado no próprio código da globo
   let urlComentarios = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/{pagina}.json',
-      urlNoticia = urls[Math.floor(Math.random() * Math.floor(urls.length))];
+      urlNoticia = chooseUrl(req.params.categoria);
 
   res.json(await getComments(urlNoticia, urlComentarios));
 });
@@ -111,6 +149,14 @@ function getComments(urlNoticia, urlComentarios) {
       }
     }
   });
+}
+
+function chooseUrl(categoria) {
+  let feed = feeds[0];
+  if (categoria && TAGS[categoria.toUpperCase()] !== undefined)
+    feed = feeds[TAGS[categoria.toUpperCase()]];
+
+  return feed[Math.floor(Math.random() * Math.floor(feed.length))];
 }
 
 module.exports = router;
