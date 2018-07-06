@@ -5,13 +5,18 @@
   "main": "node ./rest/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon ./api/server.js"
+    "start": "node ./api/server.js",
+    "watch": "nodemon ./api/server.js"
   },
   "author": "Igor Mandello",
   "license": "MIT",
   "dependencies": {
     "body-parser": "*",
     "express": "*",
+    "feedparser": "^2.2.9",
     "htmlparser2": "^3.9.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.5"
   }
 }

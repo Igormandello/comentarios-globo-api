@@ -1,15 +1,37 @@
 const router = require('express').Router();
 const htmlparser = require("htmlparser2");
 const request = require('request');
+const FeedParser = require('feedparser');
 
-router.get('/', async (req, res) => {
-  let requestUrl = 'https://g1.globo.com/rs/rio-grande-do-sul/noticia/tribunal-federal-mantem-sergio-moro-nos-processos-do-sitio-de-atibaia-e-do-instituto-lula.ghtml'
-  let settings = await getSettings(requestUrl);
+//Leitura do rss para a coleta de todas as últimas notícias
+var urls = [], fp = new FeedParser();
+fp.on('readable', function () {
+  let item = this.read();
+  while (item) {
+    urls.push(item['rss:guid']['#']);
+    item = this.read();
+  }
+});
 
+//Politica porque é o mais polêmico, logo, com os comentários mais engraçados
+request.get('http://pox.globo.com/rss/g1/politica/').pipe(fp);
+
+//Pegas todos os comentários por ordem de popularidade
+router.get(['/populares', '/:categoria/populares'], async (req, res) => {
   //Formato específicado no próprio código da globo
-  let urlComentarios = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/{pagina}.json';
+  let urlComentarios = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/populares/{pagina}.json',
+  urlNoticia = urls[Math.floor(Math.random() * Math.floor(urls.length))];
 
-  res.json(await getComments(urlComentarios, settings));
+  res.json(await getComments(urlNoticia, urlComentarios));
+});
+
+//Pegar todos os comentários por ordem de postagem
+router.get(['/', '/:categoria'], async (req, res) => {
+  //Formato específicado no próprio código da globo
+  let urlComentarios = 'https://comentarios.globo.com/comentarios/{uri}/{idExterno}/{url}/{shorturl}/{titulo}/{pagina}.json',
+      urlNoticia = urls[Math.floor(Math.random() * Math.floor(urls.length))];
+
+  res.json(await getComments(urlNoticia, urlComentarios));
 });
 
 function getSettings(url) {
@@ -44,8 +66,10 @@ function getSettings(url) {
   );
 }
 
-function getComments(urlComentarios, settings) {
-  return new Promise(resolve => {
+function getComments(urlNoticia, urlComentarios) {
+  return new Promise(async resolve => {
+    let settings = await getSettings(urlNoticia);
+    
     //Criação da url para request de comentários (o porquê da globo trocar '/' por '@@' eu não sei, apenas aceite)
     let uri = encodeURIComponent(settings.COMENTARIOS_URI.replace(/\//g, '@@')),
         id  = encodeURIComponent(settings.COMENTARIOS_IDEXTERNO.replace(/\//g, '@@')),
@@ -76,9 +100,11 @@ function getComments(urlComentarios, settings) {
         total += 1 + comentario.replies.length;
       });
 
-      if (json.itens.length < 25)
-        resolve({ comentarios, total });
-      else {
+      if (json.itens.length < 25) {
+        //Retorna um objeto que contém o título da notícia, o total de comentários e os comentários
+        let titulo = settings.TITLE;
+        resolve({ titulo, total, comentarios });
+      } else {
         pagina++;
         requestUrl = urlComentarios.replace('{pagina}', pagina);
         request.get(requestUrl, (error, response, body) => eval(body));
