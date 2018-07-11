@@ -14,7 +14,8 @@
     "body-parser": "*",
     "express": "*",
     "feedparser": "^2.2.9",
-    "htmlparser2": "^3.9.2"
+    "htmlparser2": "^3.9.2",
+    "request": "^2.87.0"
   },
   "devDependencies": {
     "nodemon": "^1.17.5"
